@@ -12,7 +12,7 @@ Kong API Gateway와 HashiCorp Vault를 더 깊게 연동합니다. Vault의 인�
 
 Vault와 Vault 플러그인 생태계를 어느 정도 알고 있다고 가정합니다. Vault 서버가 이미 기동·unseal되어 있고, 인증된 상태여야 합니다.
 
-1. GitHub Releases에서 최신 플러그인 바이너리를 받아 압축을 풉니다. 소스에서 빌드할 수도 있습니다 (Go 1.25+).
+1. GitHub Releases에서 최신 플러그인 바이너리를 받아 압축을 풉니다. 소스에서 빌드할 수도 있습니다 (Go 1.25.7+).
 
 2. 컴파일된 플러그인을 Vault의 `plugin_directory`로 옮깁니다.
 

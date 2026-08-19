@@ -12,7 +12,7 @@ This plugin was inspired by Nicolas Corrarello's talk at HashiConf 2019 entitled
 
 The setup guide assumes some familiarity with Vault and Vault's plugin ecosystem. You must have a Vault server already running, unsealed, and authenticated.
 
-1. Download and decompress the latest plugin binary from the Releases tab on GitHub. Alternatively you can compile the plugin from source (Go 1.25+).
+1. Download and decompress the latest plugin binary from the Releases tab on GitHub. Alternatively you can compile the plugin from source (Go 1.25.7+).
 
 2. Move the compiled plugin into Vault's configured `plugin_directory`:
 

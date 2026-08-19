@@ -1,6 +1,6 @@
 module github.com/Kong/vault-kong-secrets
 
-go 1.25.0
+go 1.25.7
 
 require (
 	github.com/hashicorp/go-hclog v1.6.3
