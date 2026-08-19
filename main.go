@@ -12,8 +12,9 @@ import (
 )
 
 // runningVersion is reported to Vault's plugin catalog (leading v required).
+// Release builds override this from the git tag via -ldflags.
 // See https://developer.hashicorp.com/vault/docs/plugins/plugin-development
-const runningVersion = "v0.1.0"
+var runningVersion = "v0.1.0"
 
 func main() {
 	apiClientMeta := &api.PluginAPIClientMeta{}
