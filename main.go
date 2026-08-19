@@ -2,30 +2,34 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/hashicorp/vault/sdk/plugin"
 )
 
+// runningVersion is reported to Vault's plugin catalog (leading v required).
+// See https://developer.hashicorp.com/vault/docs/plugins/plugin-development
+const runningVersion = "v0.1.0"
+
 func main() {
 	apiClientMeta := &api.PluginAPIClientMeta{}
 	flags := apiClientMeta.FlagSet()
-	if err := flags.Parse(os.Args[1:]); err != nil {
-		log.Fatal(err)
-	}
+	flags.Parse(os.Args[1:])
 
 	tlsConfig := apiClientMeta.GetTLSConfig()
 	tlsProviderFunc := api.VaultPluginTLSProvider(tlsConfig)
 
-	if err := plugin.Serve(&plugin.ServeOpts{
+	err := plugin.ServeMultiplex(&plugin.ServeOpts{
 		BackendFactoryFunc: Factory,
 		TLSProviderFunc:    tlsProviderFunc,
-	}); err != nil {
-		log.Fatal(err)
+	})
+	if err != nil {
+		hclog.New(&hclog.LoggerOptions{}).Error("plugin shutting down", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -44,19 +48,18 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 func Backend() *backend {
 	var b backend
 	b.Backend = &framework.Backend{
+		Help:           "Dynamic Kong key-auth credentials",
+		RunningVersion: runningVersion,
 		Paths: []*framework.Path{
 			pathConfigAccess(&b),
 			pathListConsumers(&b),
 			pathConsumers(&b),
 			pathCredential(&b),
 		},
-
 		Secrets: []*framework.Secret{
 			secretCredential(&b),
 		},
-
 		BackendType: logical.TypeLogical,
 	}
-
 	return &b
 }

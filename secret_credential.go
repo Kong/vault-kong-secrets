@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 
-	"github.com/hbagdi/go-kong/kong"
-
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/kong/go-kong/kong"
 )
 
 const SecretTokenType = "token"
@@ -15,29 +14,20 @@ func secretCredential(b *backend) *framework.Secret {
 	return &framework.Secret{
 		Type: SecretTokenType,
 		Fields: map[string]*framework.FieldSchema{
-			"key": &framework.FieldSchema{
+			"key": {
 				Type:        framework.TypeString,
 				Description: "The credential key",
 			},
-			"id": &framework.FieldSchema{
+			"id": {
 				Type:        framework.TypeString,
 				Description: "The credential id",
 			},
 		},
-
-		Renew:  b.secretCredentialRenew,
 		Revoke: b.secretCredentialRevoke,
 	}
 }
 
-func (b *backend) secretCredentialRenew(ctx context.Context, req *logical.Request,
-	d *framework.FieldData) (*logical.Response, error) {
-	return nil, nil
-}
-
-func (b *backend) secretCredentialRevoke(ctx context.Context, req *logical.Request,
-	d *framework.FieldData) (*logical.Response, error) {
-
+func (b *backend) secretCredentialRevoke(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	client, userErr, intErr := b.client(ctx, req.Storage)
 	if intErr != nil {
 		return nil, intErr
@@ -48,16 +38,17 @@ func (b *backend) secretCredentialRevoke(ctx context.Context, req *logical.Reque
 
 	idRaw, ok := req.Secret.InternalData["id"]
 	if !ok {
-		return nil, nil // pre 0.5.3 problem
+		return nil, nil
 	}
-	id := idRaw.(string)
-
-	consumerRaw := req.Secret.InternalData["consumer"]
-	consumer := consumerRaw.(string)
+	id, _ := idRaw.(string)
+	consumerRaw, _ := req.Secret.InternalData["consumer"]
+	consumer, _ := consumerRaw.(string)
+	if id == "" || consumer == "" {
+		return nil, nil
+	}
 
 	if err := client.KeyAuths.Delete(ctx, kong.String(consumer), kong.String(id)); err != nil {
 		return nil, err
 	}
-
 	return nil, nil
 }

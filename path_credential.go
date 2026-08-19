@@ -4,38 +4,32 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hbagdi/go-kong/kong"
-
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/kong/go-kong/kong"
 )
 
 func pathCredential(b *backend) *framework.Path {
 	return &framework.Path{
 		Pattern: "creds/" + framework.GenericNameRegex("consumer"),
-
 		Fields: map[string]*framework.FieldSchema{
-			"consumer": &framework.FieldSchema{
+			"consumer": {
 				Type:        framework.TypeString,
 				Description: "The consumer for which to generate key-auth credentials",
 			},
 		},
-
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.ReadOperation: b.pathCredentialRead,
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.ReadOperation: &framework.PathOperation{Callback: b.pathCredentialRead},
 		},
 	}
 }
 
-func (b *backend) pathCredentialRead(ctx context.Context, req *logical.Request,
-	d *framework.FieldData) (*logical.Response, error) {
-
+func (b *backend) pathCredentialRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	consumer := d.Get("consumer").(string)
 
 	entry, err := req.Storage.Get(ctx, "consumer/"+consumer)
 	if err != nil {
-		return nil, errwrap.Wrapf("error retrieving consumer: {{ err }}", err)
+		return nil, fmt.Errorf("error retrieving consumer: %w", err)
 	}
 	if entry == nil {
 		return logical.ErrorResponse(fmt.Sprintf("consumer %q not found", consumer)), nil
@@ -46,7 +40,6 @@ func (b *backend) pathCredentialRead(ctx context.Context, req *logical.Request,
 		return nil, err
 	}
 
-	// kong client
 	client, userErr, intErr := b.client(ctx, req.Storage)
 	if intErr != nil {
 		return nil, intErr
@@ -55,18 +48,19 @@ func (b *backend) pathCredentialRead(ctx context.Context, req *logical.Request,
 		return logical.ErrorResponse(userErr.Error()), nil
 	}
 
-	// create the key-auth credential
 	keyAuth, err := client.KeyAuths.Create(ctx, kong.String(consumer), &kong.KeyAuth{})
 	if err != nil {
 		return nil, err
 	}
+	if keyAuth == nil || keyAuth.Key == nil || keyAuth.ID == nil {
+		return nil, fmt.Errorf("kong returned an empty key-auth credential")
+	}
 
-	// user the helper to create the Secret
 	s := b.Secret(SecretTokenType).Response(map[string]interface{}{
-		"token": keyAuth.Key,
-		"id":    keyAuth.ID,
+		"key": *keyAuth.Key,
+		"id":  *keyAuth.ID,
 	}, map[string]interface{}{
-		"id":       keyAuth.ID,
+		"id":       *keyAuth.ID,
 		"consumer": consumer,
 	})
 	s.Secret.TTL = result.TTL

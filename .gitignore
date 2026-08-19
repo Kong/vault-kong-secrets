@@ -1,0 +1,14 @@
+# built plugin
+/bin/
+/vault-kong-secrets
+*.exe
+
+# local verification (Kong EE Docker Compose)
+Dockerfile
+docker-compose.yml
+.dockerignore
+start.sh
+stop.sh
+scripts/
+deck.yaml
+/data/
