@@ -8,6 +8,8 @@ This plugin allows for deeper integration of the Kong API Gateway and HashiCorp 
 
 This plugin was inspired by Nicolas Corrarello's talk at HashiConf 2019 entitled ["Building Vault Plug-ins: From No-Go to Dynamic Secrets"](https://www.hashicorp.com/resources/building-vault-plug-ins-from-no-go-to-dynamic-secrets).
 
+Tested with Kong Gateway OSS 3.9, Kong Gateway Enterprise 3.14, and HashiCorp Vault 2.0.
+
 ## Setup
 
 The setup guide assumes some familiarity with Vault and Vault's plugin ecosystem. You must have a Vault server already running, unsealed, and authenticated.
@@ -52,17 +54,18 @@ Manage connection parameters to the Kong cluster.
 
 * `baseurl` `(string)`- Kong Admin API URL.
 
-* `admin_token` `(string)`- Kong-Admin-Token for Kong Enterprise RBAC. Omit when
-RBAC is disabled.
+* `admin_token` `(string)`- Kong-Admin-Token for Kong Gateway Enterprise RBAC. Omit when RBAC is disabled.
 
-* `workspace` `(string)`- Kong workspace name. Omit to use the default workspace.
+* `workspace` `(string)`- Kong workspace name for Kong Gateway Enterprise. Omit on Kong Gateway OSS (no workspaces; Admin API root). On Enterprise, omit to use the default workspace.
 
 #### CLI
 
+##### Kong Gateway OSS
 ```
 $ vault write kong/config/access baseurl=http://127.0.0.1:8001
 ```
 
+##### Kong Gateway Enterprise
 ```
 $ vault write kong/config/access \
     baseurl=http://127.0.0.1:8001 \

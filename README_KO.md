@@ -8,6 +8,8 @@ Kong API Gateway와 HashiCorp Vault를 더 깊게 연동합니다. Vault의 인�
 
 이 플러그인은 HashiConf 2019에서 Nicolas Corrarello가 발표한 ["Building Vault Plug-ins: From No-Go to Dynamic Secrets"](https://www.hashicorp.com/resources/building-vault-plug-ins-from-no-go-to-dynamic-secrets)에서 영감을 받았습니다.
 
+검증한 버전: Kong Gateway OSS 3.9.3, Kong Gateway Enterprise 3.15.0.3, HashiCorp Vault 2.0.4.
+
 ## 적용 방식
 
 Vault와 Vault 플러그인 생태계를 어느 정도 알고 있다고 가정합니다. Vault 서버가 이미 기동·unseal되어 있고, 인증된 상태여야 합니다.
@@ -52,18 +54,18 @@ Kong 클러스터 접속 파라미터를 설정합니다.
 
 * `baseurl` `(string)`- Kong Admin API URL.
 
-* `admin_token` `(string)`- Kong Enterprise RBAC용 Kong-Admin-Token. RBAC가
-꺼져 있으면 생략합니다.
+* `admin_token` `(string)`- Kong Gateway Enterprise RBAC용 Kong-Admin-Token. RBAC가 꺼져 있으면 생략합니다.
 
-* `workspace` `(string)`- Kong workspace 이름. 생략하면 default workspace를
-사용합니다.
+* `workspace` `(string)`- Kong Gateway Enterprise workspace 이름. Kong Gateway OSS에는 workspace가 없으므로 생략합니다 (Admin API 루트). Enterprise에서 생략하면 default workspace를 사용합니다.
 
 #### CLI 예시
 
+##### Kong Gateway OSS
 ```
 $ vault write kong/config/access baseurl=http://127.0.0.1:8001
 ```
 
+##### Kong Gateway Enterprise
 ```
 $ vault write kong/config/access \
     baseurl=http://127.0.0.1:8001 \
@@ -83,11 +85,9 @@ Kong에 이미 있는 Consumer의 사용자 이름과 credential 리스 TTL을 �
 
 * `username` `(string)`- 자격 증명을 발급할 Kong Consumer 사용자 이름.
 
-* `ttl` `(duration: "")`- 생성된 자격 증명의 TTL. `"30s"`, `"1h"` 같은 접미사
-또는 초 단위 문자열입니다. 생략하면 Vault 기본 TTL을 씁니다.
+* `ttl` `(duration: "")`- 생성된 자격 증명의 TTL. `"30s"`, `"1h"` 같은 접미사 또는 초 단위 문자열입니다. 생략하면 Vault 기본 TTL을 씁니다.
 
-* `max_ttl` `(duration: "")`- 생성된 자격 증명의 최대 TTL. `"30s"`, `"1h"` 같은
-접미사 또는 초 단위 문자열입니다. 생략하면 Vault 기본 최대 TTL을 씁니다.
+* `max_ttl` `(duration: "")`- 생성된 자격 증명의 최대 TTL. `"30s"`, `"1h"` 같은 접미사 또는 초 단위 문자열입니다. 생략하면 Vault 기본 최대 TTL을 씁니다.
 
 #### CLI
 
