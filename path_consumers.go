@@ -5,25 +5,24 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/vault/sdk/framework"
-	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/Kong/vault-kong-secrets/hostsdk"
 )
 
-func pathListConsumers(b *backend) *framework.Path {
-	return &framework.Path{
+func pathListConsumers(b *backend) *hostsdk.Path {
+	return &hostsdk.Path{
 		Pattern: "consumers/?$",
-		Operations: map[logical.Operation]framework.OperationHandler{
-			logical.ListOperation: &framework.PathOperation{Callback: b.pathConsumersList},
+		Operations: map[hostsdk.Operation]hostsdk.OperationHandler{
+			hostsdk.ListOperation: &hostsdk.PathOperation{Callback: b.pathConsumersList},
 		},
 	}
 }
 
-func (b *backend) pathConsumersList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathConsumersList(ctx context.Context, req *hostsdk.Request, d *hostsdk.FieldData) (*hostsdk.Response, error) {
 	entries, err := req.Storage.List(ctx, "consumer/")
 	if err != nil {
 		return nil, err
 	}
-	return logical.ListResponse(entries), nil
+	return hostsdk.ListResponse(entries), nil
 }
 
 type consumerConfig struct {
@@ -32,32 +31,32 @@ type consumerConfig struct {
 	MaxTTL   time.Duration `json:"max_ttl"`
 }
 
-func pathConsumers(b *backend) *framework.Path {
-	return &framework.Path{
-		Pattern: "consumers/" + framework.GenericNameRegex("username"),
-		Fields: map[string]*framework.FieldSchema{
+func pathConsumers(b *backend) *hostsdk.Path {
+	return &hostsdk.Path{
+		Pattern: "consumers/" + hostsdk.GenericNameRegex("username"),
+		Fields: map[string]*hostsdk.FieldSchema{
 			"username": {
-				Type:        framework.TypeString,
+				Type:        hostsdk.TypeString,
 				Description: "username of the Kong Consumer",
 			},
 			"ttl": {
-				Type:        framework.TypeDurationSecond,
+				Type:        hostsdk.TypeDurationSecond,
 				Description: "TTL for the key-auth credential created for the consumer",
 			},
 			"max_ttl": {
-				Type:        framework.TypeDurationSecond,
+				Type:        hostsdk.TypeDurationSecond,
 				Description: "Max TTL for the key-auth credential created for the consumer",
 			},
 		},
-		Operations: map[logical.Operation]framework.OperationHandler{
-			logical.ReadOperation:   &framework.PathOperation{Callback: b.pathConsumerRead},
-			logical.UpdateOperation: &framework.PathOperation{Callback: b.pathConsumerUpdate},
-			logical.DeleteOperation: &framework.PathOperation{Callback: b.pathConsumerDelete},
+		Operations: map[hostsdk.Operation]hostsdk.OperationHandler{
+			hostsdk.ReadOperation:   &hostsdk.PathOperation{Callback: b.pathConsumerRead},
+			hostsdk.UpdateOperation: &hostsdk.PathOperation{Callback: b.pathConsumerUpdate},
+			hostsdk.DeleteOperation: &hostsdk.PathOperation{Callback: b.pathConsumerDelete},
 		},
 	}
 }
 
-func (b *backend) pathConsumerRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathConsumerRead(ctx context.Context, req *hostsdk.Request, d *hostsdk.FieldData) (*hostsdk.Response, error) {
 	username := d.Get("username").(string)
 
 	entry, err := req.Storage.Get(ctx, "consumer/"+username)
@@ -65,7 +64,7 @@ func (b *backend) pathConsumerRead(ctx context.Context, req *logical.Request, d 
 		return nil, err
 	}
 	if entry == nil {
-		return logical.ErrorResponse(fmt.Sprintf("consumer %q not found", username)), nil
+		return hostsdk.ErrorResponse(fmt.Sprintf("consumer %q not found", username)), nil
 	}
 
 	var result consumerConfig
@@ -73,7 +72,7 @@ func (b *backend) pathConsumerRead(ctx context.Context, req *logical.Request, d 
 		return nil, err
 	}
 
-	return &logical.Response{
+	return &hostsdk.Response{
 		Data: map[string]interface{}{
 			"username": result.Username,
 			"ttl":      int(result.TTL.Seconds()),
@@ -82,7 +81,7 @@ func (b *backend) pathConsumerRead(ctx context.Context, req *logical.Request, d 
 	}, nil
 }
 
-func (b *backend) pathConsumerUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathConsumerUpdate(ctx context.Context, req *hostsdk.Request, d *hostsdk.FieldData) (*hostsdk.Response, error) {
 	username := d.Get("username").(string)
 
 	var ttl time.Duration
@@ -95,7 +94,7 @@ func (b *backend) pathConsumerUpdate(ctx context.Context, req *logical.Request, 
 		maxTTL = time.Second * time.Duration(maxTTLRaw.(int))
 	}
 
-	entry, err := logical.StorageEntryJSON("consumer/"+username, consumerConfig{
+	entry, err := hostsdk.StorageEntryJSON("consumer/"+username, consumerConfig{
 		Username: username,
 		TTL:      ttl,
 		MaxTTL:   maxTTL,
@@ -109,7 +108,7 @@ func (b *backend) pathConsumerUpdate(ctx context.Context, req *logical.Request, 
 	return nil, nil
 }
 
-func (b *backend) pathConsumerDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathConsumerDelete(ctx context.Context, req *hostsdk.Request, d *hostsdk.FieldData) (*hostsdk.Response, error) {
 	username := d.Get("username").(string)
 	if err := req.Storage.Delete(ctx, "consumer/"+username); err != nil {
 		return nil, err

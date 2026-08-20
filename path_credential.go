@@ -4,27 +4,26 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/vault/sdk/framework"
-	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/Kong/vault-kong-secrets/hostsdk"
 	"github.com/kong/go-kong/kong"
 )
 
-func pathCredential(b *backend) *framework.Path {
-	return &framework.Path{
-		Pattern: "creds/" + framework.GenericNameRegex("consumer"),
-		Fields: map[string]*framework.FieldSchema{
+func pathCredential(b *backend) *hostsdk.Path {
+	return &hostsdk.Path{
+		Pattern: "creds/" + hostsdk.GenericNameRegex("consumer"),
+		Fields: map[string]*hostsdk.FieldSchema{
 			"consumer": {
-				Type:        framework.TypeString,
+				Type:        hostsdk.TypeString,
 				Description: "The consumer for which to generate key-auth credentials",
 			},
 		},
-		Operations: map[logical.Operation]framework.OperationHandler{
-			logical.ReadOperation: &framework.PathOperation{Callback: b.pathCredentialRead},
+		Operations: map[hostsdk.Operation]hostsdk.OperationHandler{
+			hostsdk.ReadOperation: &hostsdk.PathOperation{Callback: b.pathCredentialRead},
 		},
 	}
 }
 
-func (b *backend) pathCredentialRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathCredentialRead(ctx context.Context, req *hostsdk.Request, d *hostsdk.FieldData) (*hostsdk.Response, error) {
 	consumer := d.Get("consumer").(string)
 
 	entry, err := req.Storage.Get(ctx, "consumer/"+consumer)
@@ -32,7 +31,7 @@ func (b *backend) pathCredentialRead(ctx context.Context, req *logical.Request, 
 		return nil, fmt.Errorf("error retrieving consumer: %w", err)
 	}
 	if entry == nil {
-		return logical.ErrorResponse(fmt.Sprintf("consumer %q not found", consumer)), nil
+		return hostsdk.ErrorResponse(fmt.Sprintf("consumer %q not found", consumer)), nil
 	}
 
 	var result consumerConfig
@@ -45,7 +44,7 @@ func (b *backend) pathCredentialRead(ctx context.Context, req *logical.Request, 
 		return nil, intErr
 	}
 	if userErr != nil {
-		return logical.ErrorResponse(userErr.Error()), nil
+		return hostsdk.ErrorResponse(userErr.Error()), nil
 	}
 
 	keyAuth, err := client.KeyAuths.Create(ctx, kong.String(consumer), &kong.KeyAuth{})

@@ -3,23 +3,22 @@ package main
 import (
 	"context"
 
-	"github.com/hashicorp/vault/sdk/framework"
-	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/Kong/vault-kong-secrets/hostsdk"
 	"github.com/kong/go-kong/kong"
 )
 
 const SecretTokenType = "token"
 
-func secretCredential(b *backend) *framework.Secret {
-	return &framework.Secret{
+func secretCredential(b *backend) *hostsdk.Secret {
+	return &hostsdk.Secret{
 		Type: SecretTokenType,
-		Fields: map[string]*framework.FieldSchema{
+		Fields: map[string]*hostsdk.FieldSchema{
 			"key": {
-				Type:        framework.TypeString,
+				Type:        hostsdk.TypeString,
 				Description: "The credential key",
 			},
 			"id": {
-				Type:        framework.TypeString,
+				Type:        hostsdk.TypeString,
 				Description: "The credential id",
 			},
 		},
@@ -27,7 +26,7 @@ func secretCredential(b *backend) *framework.Secret {
 	}
 }
 
-func (b *backend) secretCredentialRevoke(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) secretCredentialRevoke(ctx context.Context, req *hostsdk.Request, d *hostsdk.FieldData) (*hostsdk.Response, error) {
 	client, userErr, intErr := b.client(ctx, req.Storage)
 	if intErr != nil {
 		return nil, intErr

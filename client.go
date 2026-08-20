@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/Kong/vault-kong-secrets/hostsdk"
 	"github.com/kong/go-kong/kong"
 )
 
@@ -18,7 +18,7 @@ func (t *adminTokenTransport) RoundTrip(req *http.Request) (*http.Response, erro
 	return http.DefaultTransport.RoundTrip(req)
 }
 
-func (b *backend) client(ctx context.Context, s logical.Storage) (*kong.Client, error, error) {
+func (b *backend) client(ctx context.Context, s hostsdk.Storage) (*kong.Client, error, error) {
 	conf, userErr, intErr := b.readConfigAccess(ctx, s)
 	if intErr != nil {
 		return nil, nil, intErr

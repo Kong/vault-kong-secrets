@@ -30,12 +30,14 @@ jobs:
             GOARCH="${spec#*/}"
             ext=""
             [ "$GOOS" = windows ] && ext=".exe"
-            out="dist/vault-kong-secrets_${GOOS}_${GOARCH}${ext}"
             CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath \
               -ldflags "-s -w -X main.runningVersion=${VERSION}" \
-              -o "$out" .
+              -o "dist/vault-kong-secrets_${GOOS}_${GOARCH}${ext}" .
+            CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build -tags openbao -trimpath \
+              -ldflags "-s -w -X main.runningVersion=${VERSION}" \
+              -o "dist/openbao-kong-secrets_${GOOS}_${GOARCH}${ext}" .
           done
-          (cd dist && sha256sum vault-kong-secrets_*) > dist/SHA256SUMS
+          (cd dist && sha256sum vault-kong-secrets_* openbao-kong-secrets_*) > dist/SHA256SUMS
 
       - name: Publish release
         env:

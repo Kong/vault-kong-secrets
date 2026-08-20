@@ -4,27 +4,24 @@ import (
 	"context"
 	"os"
 
+	"github.com/Kong/vault-kong-secrets/hostsdk"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/vault/api"
-	"github.com/hashicorp/vault/sdk/framework"
-	"github.com/hashicorp/vault/sdk/logical"
-	"github.com/hashicorp/vault/sdk/plugin"
 )
 
 // runningVersion is reported to Vault's plugin catalog (leading v required).
 // Release builds override this from the git tag via -ldflags.
 // See https://developer.hashicorp.com/vault/docs/plugins/plugin-development
-var runningVersion = "v0.1.0"
+var runningVersion = "v0.2.0"
 
 func main() {
-	apiClientMeta := &api.PluginAPIClientMeta{}
+	apiClientMeta := &hostsdk.PluginAPIClientMeta{}
 	flags := apiClientMeta.FlagSet()
 	flags.Parse(os.Args[1:])
 
 	tlsConfig := apiClientMeta.GetTLSConfig()
-	tlsProviderFunc := api.VaultPluginTLSProvider(tlsConfig)
+	tlsProviderFunc := hostsdk.VaultPluginTLSProvider(tlsConfig)
 
-	err := plugin.ServeMultiplex(&plugin.ServeOpts{
+	err := hostsdk.ServeMultiplex(&hostsdk.ServeOpts{
 		BackendFactoryFunc: Factory,
 		TLSProviderFunc:    tlsProviderFunc,
 	})
@@ -35,10 +32,10 @@ func main() {
 }
 
 type backend struct {
-	*framework.Backend
+	*hostsdk.Backend
 }
 
-func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
+func Factory(ctx context.Context, conf *hostsdk.BackendConfig) (hostsdk.LogicalBackend, error) {
 	b := Backend()
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
@@ -48,19 +45,19 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 
 func Backend() *backend {
 	var b backend
-	b.Backend = &framework.Backend{
+	b.Backend = &hostsdk.Backend{
 		Help:           "Dynamic Kong key-auth credentials",
 		RunningVersion: runningVersion,
-		Paths: []*framework.Path{
+		Paths: []*hostsdk.Path{
 			pathConfigAccess(&b),
 			pathListConsumers(&b),
 			pathConsumers(&b),
 			pathCredential(&b),
 		},
-		Secrets: []*framework.Secret{
+		Secrets: []*hostsdk.Secret{
 			secretCredential(&b),
 		},
-		BackendType: logical.TypeLogical,
+		BackendType: hostsdk.TypeLogical,
 	}
 	return &b
 }

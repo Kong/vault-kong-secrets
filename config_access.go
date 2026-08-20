@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/vault/sdk/framework"
-	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/Kong/vault-kong-secrets/hostsdk"
 )
 
 type accessConfig struct {
@@ -14,35 +13,35 @@ type accessConfig struct {
 	Workspace  string `json:"workspace"`
 }
 
-func pathConfigAccess(b *backend) *framework.Path {
-	return &framework.Path{
+func pathConfigAccess(b *backend) *hostsdk.Path {
+	return &hostsdk.Path{
 		Pattern: "config/access",
-		Fields: map[string]*framework.FieldSchema{
+		Fields: map[string]*hostsdk.FieldSchema{
 			"baseurl": {
-				Type:        framework.TypeString,
+				Type:        hostsdk.TypeString,
 				Description: "Kong Admin API base URL (for example http://kong-cp:8001)",
 				Required:    true,
 			},
 			"admin_token": {
-				Type:        framework.TypeString,
+				Type:        hostsdk.TypeString,
 				Description: "Kong-Admin-Token for RBAC (Enterprise). Leave empty if RBAC is off.",
-				DisplayAttrs: &framework.DisplayAttributes{
+				DisplayAttrs: &hostsdk.DisplayAttributes{
 					Sensitive: true,
 				},
 			},
 			"workspace": {
-				Type:        framework.TypeString,
+				Type:        hostsdk.TypeString,
 				Description: "Kong workspace name. Empty uses the default workspace.",
 			},
 		},
-		Operations: map[logical.Operation]framework.OperationHandler{
-			logical.ReadOperation:   &framework.PathOperation{Callback: b.pathConfigAccessRead},
-			logical.UpdateOperation: &framework.PathOperation{Callback: b.pathConfigAccessWrite},
+		Operations: map[hostsdk.Operation]hostsdk.OperationHandler{
+			hostsdk.ReadOperation:   &hostsdk.PathOperation{Callback: b.pathConfigAccessRead},
+			hostsdk.UpdateOperation: &hostsdk.PathOperation{Callback: b.pathConfigAccessWrite},
 		},
 	}
 }
 
-func (b *backend) readConfigAccess(ctx context.Context, storage logical.Storage) (*accessConfig, error, error) {
+func (b *backend) readConfigAccess(ctx context.Context, storage hostsdk.Storage) (*accessConfig, error, error) {
 	entry, err := storage.Get(ctx, "config/access")
 	if err != nil {
 		return nil, nil, err
@@ -59,16 +58,16 @@ func (b *backend) readConfigAccess(ctx context.Context, storage logical.Storage)
 	return conf, nil, nil
 }
 
-func (b *backend) pathConfigAccessRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathConfigAccessRead(ctx context.Context, req *hostsdk.Request, data *hostsdk.FieldData) (*hostsdk.Response, error) {
 	conf, userErr, intErr := b.readConfigAccess(ctx, req.Storage)
 	if intErr != nil {
 		return nil, intErr
 	}
 	if userErr != nil {
-		return logical.ErrorResponse(userErr.Error()), nil
+		return hostsdk.ErrorResponse(userErr.Error()), nil
 	}
 
-	return &logical.Response{
+	return &hostsdk.Response{
 		Data: map[string]interface{}{
 			"baseurl":   conf.BaseURL,
 			"workspace": conf.Workspace,
@@ -76,8 +75,8 @@ func (b *backend) pathConfigAccessRead(ctx context.Context, req *logical.Request
 	}, nil
 }
 
-func (b *backend) pathConfigAccessWrite(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	entry, err := logical.StorageEntryJSON("config/access", accessConfig{
+func (b *backend) pathConfigAccessWrite(ctx context.Context, req *hostsdk.Request, data *hostsdk.FieldData) (*hostsdk.Response, error) {
+	entry, err := hostsdk.StorageEntryJSON("config/access", accessConfig{
 		BaseURL:    data.Get("baseurl").(string),
 		AdminToken: data.Get("admin_token").(string),
 		Workspace:  data.Get("workspace").(string),

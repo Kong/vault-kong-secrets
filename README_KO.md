@@ -1,6 +1,6 @@
 # vault-kong-secrets
 
-Kong API Gateway용 Vault secrets engine. HashiCorp Vault로 Kong 인증 자격 증명을 관리합니다.
+Kong API Gateway용 secrets engine. HashiCorp Vault 또는 OpenBao에서 Kong key-auth 자격 증명을 발급합니다.
 
 ## 목적
 
@@ -8,21 +8,31 @@ Kong API Gateway와 HashiCorp Vault를 더 깊게 연동합니다. Vault의 인�
 
 이 플러그인은 HashiConf 2019에서 Nicolas Corrarello가 발표한 ["Building Vault Plug-ins: From No-Go to Dynamic Secrets"](https://www.hashicorp.com/resources/building-vault-plug-ins-from-no-go-to-dynamic-secrets)에서 영감을 받았습니다.
 
-검증한 버전: Kong Gateway OSS 3.9.3, Kong Gateway Enterprise 3.15.0.3, HashiCorp Vault 2.0.4.
+검증:
+
+- Kong Gateway OSS 3.9.3
+- Kong Gateway Enterprise 3.15.0.3
+- HashiCorp Vault 1.19.5 / 1.20.4 / 1.21.4 / 2.0.4
+- OpenBao 2.4.4 / 2.5.5 / 2.6.2
 
 ## 적용 방식
 
-Vault와 Vault 플러그인 생태계를 어느 정도 알고 있다고 가정합니다. Vault 서버가 이미 기동·unseal되어 있고, 인증된 상태여야 합니다.
+Vault 또는 OpenBao 플러그인 생태계를 어느 정도 알고 있다고 가정합니다. 서버가 이미 기동·unseal되어 있고, 인증된 상태여야 합니다.
 
-1. GitHub Releases에서 최신 플러그인 바이너리를 받아 압축을 풉니다. 소스에서 빌드할 수도 있습니다 (Go 1.25.7+).
+1. GitHub Releases에서 플러그인 바이너리를 받거나 소스에서 빌드합니다 (Go 1.25.7+). 기본 빌드는 Vault, `-tags openbao`는 OpenBao입니다.
 
-2. 컴파일된 플러그인을 Vault의 `plugin_directory`로 옮깁니다.
+    ```sh
+    $ go build -o vault-kong-secrets .
+    $ go build -tags openbao -o openbao-kong-secrets .
+    ```
+
+2. 컴파일된 플러그인을 호스트의 `plugin_directory`로 옮깁니다.
 
     ```sh
     $ mv vault-kong-secrets /etc/vault/plugins/vault-kong-secrets
     ```
 
-3. 플러그인의 SHA256을 계산하고 Vault 플러그인 카탈로그에 등록합니다. 미리 컴파일된 바이너리를 쓰는 경우 게시된 체크섬으로 무결성을 확인하는 것을 권장합니다. 플러그인이 보고하는 `RunningVersion`을 확인합니다. (예제에서는 `v0.1.0`입니다.)
+3. SHA256을 계산하고 플러그인 카탈로그에 등록합니다. `-command`는 바이너리 파일 이름과 같게 둡니다 (`vault-kong-secrets` 또는 `openbao-kong-secrets`). 플러그인이 보고하는 `RunningVersion`은 `v0.2.0`입니다.
 
     ```sh
     $ export SHA256=$(shasum -a 256 "/etc/vault/plugins/vault-kong-secrets" | cut -d' ' -f1)
@@ -30,7 +40,7 @@ Vault와 Vault 플러그인 생태계를 어느 정도 알고 있다고 가정�
     $ vault plugin register \
         -sha256="${SHA256}" \
         -command="vault-kong-secrets" \
-        -version=v0.1.0 \
+        -version=v0.2.0 \
         secret kong-secrets
     ```
 
@@ -75,7 +85,7 @@ $ vault write kong/config/access \
 
 ### Configure Consumer
 
-Kong에 이미 있는 Consumer의 사용자 이름과 credential 리스 TTL을 설정합니다.
+Kong에 이미 있는 Consumer의 사용자 이름과 credential 리스 TTL을 설정합니다. `ttl`과 `max_ttl`은 리스 수명입니다. Kong key-auth에는 TTL을 넣지 않으며, 리스가 끝나면 Vault/OpenBao에서 키를 삭제합니다.
 
 | Method | Path | Produces |
 | :------- | :--------------------------- | :----------------------- |
@@ -85,9 +95,9 @@ Kong에 이미 있는 Consumer의 사용자 이름과 credential 리스 TTL을 �
 
 * `username` `(string)`- 자격 증명을 발급할 Kong Consumer 사용자 이름.
 
-* `ttl` `(duration: "")`- 생성된 자격 증명의 TTL. `"30s"`, `"1h"` 같은 접미사 또는 초 단위 문자열입니다. 생략하면 Vault 기본 TTL을 씁니다.
+* `ttl` `(duration: "")`- 생성된 자격 증명의 리스 TTL. `"30s"`, `"1h"` 같은 접미사 또는 초 단위 문자열입니다. 생략하면 Vault 기본 TTL을 씁니다.
 
-* `max_ttl` `(duration: "")`- 생성된 자격 증명의 최대 TTL. `"30s"`, `"1h"` 같은 접미사 또는 초 단위 문자열입니다. 생략하면 Vault 기본 최대 TTL을 씁니다.
+* `max_ttl` `(duration: "")`- 생성된 자격 증명의 최대 리스 TTL. `"30s"`, `"1h"` 같은 접미사 또는 초 단위 문자열입니다. 생략하면 Vault 기본 최대 TTL을 씁니다.
 
 #### CLI
 

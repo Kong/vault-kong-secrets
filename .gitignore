@@ -1,6 +1,7 @@
 # built plugin
 /bin/
 /vault-kong-secrets
+/openbao-kong-secrets
 *.exe
 
 # local verification (Kong EE Docker Compose)

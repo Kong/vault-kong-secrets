@@ -1,6 +1,6 @@
 # vault-kong-secrets
 
-Vault secrets engine for Kong API Gateway. Manage Kong authentication credentials via HashiCorp Vault.
+Secrets engine for Kong API Gateway. Issue Kong key-auth credentials from HashiCorp Vault or OpenBao.
 
 ## Rationale
 
@@ -8,21 +8,33 @@ This plugin allows for deeper integration of the Kong API Gateway and HashiCorp 
 
 This plugin was inspired by Nicolas Corrarello's talk at HashiConf 2019 entitled ["Building Vault Plug-ins: From No-Go to Dynamic Secrets"](https://www.hashicorp.com/resources/building-vault-plug-ins-from-no-go-to-dynamic-secrets).
 
-Tested with Kong Gateway OSS 3.9, Kong Gateway Enterprise 3.14, and HashiCorp Vault 2.0.
+### Tested:
+
+- Kong Gateway
+    - OSS 3.9
+    - Enterprise 3.15
+- Vault
+    - HashiCorp Vault 1.19 / 1.20 / 1.21 / 2.0
+    - OpenBao 2.4 / 2.5 / 2.6
 
 ## Setup
 
-The setup guide assumes some familiarity with Vault and Vault's plugin ecosystem. You must have a Vault server already running, unsealed, and authenticated.
+The setup guide assumes some familiarity with Vault or OpenBao plugin ecosystems. You must have a server already running, unsealed, and authenticated.
 
-1. Download and decompress the latest plugin binary from the Releases tab on GitHub. Alternatively you can compile the plugin from source (Go 1.25.7+).
+1. Download the plugin binary from GitHub Releases, or compile from source (Go 1.25.7+). Default build is Vault; `-tags openbao` is OpenBao:
 
-2. Move the compiled plugin into Vault's configured `plugin_directory`:
+    ```sh
+    $ go build -o vault-kong-secrets .
+    $ go build -tags openbao -o openbao-kong-secrets .
+    ```
+
+2. Move the compiled plugin into the host `plugin_directory`:
 
     ```sh
     $ mv vault-kong-secrets /etc/vault/plugins/vault-kong-secrets
     ```
 
-3. Calculate the SHA256 of the plugin and register it in Vault's plugin catalog. If you are downloading the pre-compiled binary, it is highly recommended that you use the published checksums to verify integrity. The plugin reports `RunningVersion` `v0.1.0`.
+3. Calculate the SHA256 and register it. Use `-command` matching the binary name (`vault-kong-secrets` or `openbao-kong-secrets`). The plugin reports `RunningVersion` `v0.2.0`.
 
     ```sh
     $ export SHA256=$(shasum -a 256 "/etc/vault/plugins/vault-kong-secrets" | cut -d' ' -f1)
@@ -30,7 +42,7 @@ The setup guide assumes some familiarity with Vault and Vault's plugin ecosystem
     $ vault plugin register \
         -sha256="${SHA256}" \
         -command="vault-kong-secrets" \
-        -version=v0.1.0 \
+        -version=v0.2.0 \
         secret kong-secrets
     ```
 
@@ -75,7 +87,7 @@ $ vault write kong/config/access \
 
 ### Configure Consumer
 
-Manage username and credential lease TTLs for an existing Kong Consumer.
+Manage username and credential lease TTLs for an existing Kong Consumer. `ttl` and `max_ttl` are lease durations. Kong key-auth does not have a TTL, and deletes the key from Vault/OpenBao when the lease ends.
 
 | Method | Path | Produces |
 | :------- | :--------------------------- | :----------------------- |
@@ -85,9 +97,9 @@ Manage username and credential lease TTLs for an existing Kong Consumer.
 
 * `username` `(string)`- The Kong Consumer username on which to generate credentials.
 
-* `ttl` `(duration: "")`- Specifies the TTL for the generated credential. This is provided as a string duration with a time suffix like "30s" or "1h" or as seconds. If not provided, the default Vault TTL is used.
+* `ttl` `(duration: "")`- The lease TTL for the generated credential. This is provided as a string duration with a time suffix like "30s" or "1h" or as seconds. If not provided, the default Vault TTL is used.
 
-* `max_ttl` `(duration: "")`- Specifies the max TTL for the generated credential. This is provided as a string duration with a time suffix like "30s" or "1h" or as seconds. If not provided, the default Vault max TTL is used.
+* `max_ttl` `(duration: "")`- The max lease TTL for the generated credential. This is provided as a string duration with a time suffix like "30s" or "1h" or as seconds. If not provided, the default Vault max TTL is used.
 
 #### CLI
 
